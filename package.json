@@ -1,0 +1,13 @@
+{
+  "name": "pele-cli",
+  "private": true,
+  "description": "Pele as a single binary: Mermaid to SVG from the command line, running on QuickJS.",
+  "type": "module",
+  "scripts": {
+    "build": "./build.sh",
+    "check": "node scripts/check.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}
