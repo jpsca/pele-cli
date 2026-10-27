@@ -15,7 +15,7 @@ It depends on no runtime and on no shared library. A render takes about 10 ms.
 
 ## Build
 
-Needs: a Pele checkout next to this directory (or `PELE_DIR` pointing to one), Node 20+, a C
+Needs: a Pele checkout next to this folder (or `PELE_DIR` pointing to one), Node 20+, a C
 compiler, `make`, `curl` and `tar`. The first build downloads and compiles QuickJS into `build/`.
 
 ```sh
