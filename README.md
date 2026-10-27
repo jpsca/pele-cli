@@ -1,4 +1,4 @@
-# Pele-cli
+# Pele CLI
 
 [Pele](https://github.com/obsidianmd/pele) renders Mermaid diagrams to SVG you can freely style,
 but you could only use it from a browser... until now!
@@ -8,6 +8,10 @@ This script bundles Pele with a small command line wrapper, compiles the result 
 into one statically linked executable of about 3 MB.
 
 It depends on no runtime and on no shared library. A render takes about 10 ms.
+
+> [!IMPORTANT]
+> This is an independent project not affiliated with, endorsed by, or maintained by the
+> Pele project or Obsidian. Pele is their work; only the command line wrapper and build here are mine.
 
 ## Build
 
