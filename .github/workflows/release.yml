@@ -1,0 +1,125 @@
+# Builds the pele binary for every supported platform and, on a version tag, publishes
+# them as a GitHub release. Run by hand (workflow_dispatch) it only builds and keeps the
+# binaries as workflow artifacts.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      pele_ref:
+        description: Pele tag or commit to build from
+        default: '1.12.0'
+
+env:
+  PELE_REF: ${{ inputs.pele_ref || '1.12.0' }}
+  QJS_VERSION: '2025-04-26'
+
+jobs:
+  build:
+    name: ${{ matrix.asset }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux
+            asset: pele-linux-x86_64
+          - os: ubuntu-24.04-arm
+            target: linux
+            asset: pele-linux-arm64
+          - os: macos-latest
+            target: darwin
+            asset: pele-macos-arm64
+          - os: macos-15-intel
+            target: darwin
+            asset: pele-macos-x86_64
+          - os: ubuntu-latest
+            target: windows
+            asset: pele-windows-x86_64
+    defaults:
+      run:
+        working-directory: pele-cli
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: pele-cli
+
+      - name: Check out Pele
+        uses: actions/checkout@v4
+        with:
+          repository: obsidianmd/pele
+          ref: ${{ env.PELE_REF }}
+          path: pele
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: pele-cli/package-lock.json
+
+      - name: Cache the QuickJS build
+        uses: actions/cache@v4
+        with:
+          path: pele-cli/build/quickjs-*
+          key: quickjs-${{ env.QJS_VERSION }}-${{ matrix.os }}-${{ matrix.target }}
+
+      - name: Install the Windows cross compiler
+        if: matrix.target == 'windows'
+        run: sudo apt-get update -q && sudo apt-get install -y -q gcc-mingw-w64-x86-64
+
+      - run: npm ci
+
+      - run: npm run build
+        env:
+          TARGET: ${{ matrix.target }}
+
+      - name: Smoke test
+        if: matrix.target != 'windows'
+        run: |
+          dist/pele --version
+          printf 'flowchart LR\n  A --> B\n' | dist/pele | head -c 200
+          echo
+
+      - name: Package
+        run: |
+          case '${{ matrix.target }}' in
+            windows) (cd dist && zip -q "../${{ matrix.asset }}.zip" pele.exe) ;;
+            *) tar -C dist -czf "${{ matrix.asset }}.tar.gz" pele ;;
+          esac
+          ls -la ${{ matrix.asset }}.*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: |
+            pele-cli/${{ matrix.asset }}.tar.gz
+            pele-cli/${{ matrix.asset }}.zip
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+
+      - name: Checksums
+        run: cd assets && sha256sum * > SHA256SUMS
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" \
+            --notes "Built from Pele $PELE_REF with QuickJS $QJS_VERSION." \
+            assets/*
