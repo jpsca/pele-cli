@@ -92,8 +92,9 @@ npx esbuild src/cli.js \
 link() {
   local out="$1" libdir="$2"
   shift 2
-  local libs="-lm"
-  [ "$TARGET" = windows ] || libs="$libs -ldl -lpthread"
+  # pthread is also needed on windows: MinGW's winpthreads provides it and clock_gettime.
+  local libs="-lm -lpthread"
+  [ "$TARGET" = windows ] || libs="$libs -ldl"
   [ "$STATIC" = 1 ] && libs="-static $libs"
   # shellcheck disable=SC2086
   "$CC" -O2 "$@" -o "$out" build/pele.c -I"$QJS_DIR" -L"$libdir" -lquickjs $libs
