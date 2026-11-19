@@ -34,8 +34,8 @@ link is not possible), `CC`.
 ### Releases
 
 The releases of this project are pre-made builds for Linux (x86_64, arm64), macOS (arm64,
-x86_64) and Windows (x86_64). They are triggered manually, so there is no guarantee that
-every version has one.
+x86_64) and Windows (x86_64). They are triggered manually (by creating a new tag), so there
+is no guarantee that every version has one.
 
 > [!NOTE]
 > The macOS binaries are not signed or notarized. A copy downloaded with a browser is quarantined,

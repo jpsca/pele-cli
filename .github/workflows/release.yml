@@ -1,6 +1,7 @@
 # Builds the pele binary for every supported platform and, on a version tag, publishes
-# them as a GitHub release. Run by hand (workflow_dispatch) it only builds and keeps the
-# binaries as workflow artifacts.
+# them as a GitHub release. The Pele version to build is the tag without its leading "v":
+# tag v1.13.0 builds Pele 1.13.0. Run by hand (workflow_dispatch) it only builds and keeps
+# the binaries as workflow artifacts.
 name: Release
 
 on:
@@ -9,11 +10,10 @@ on:
   workflow_dispatch:
     inputs:
       pele_ref:
-        description: Pele tag or commit to build from
-        default: '1.13.0'
+        description: Pele tag or commit to build from (empty = the tag this run is on, or Pele's default branch)
+        default: ''
 
 env:
-  PELE_REF: ${{ inputs.pele_ref || '1.13.0' }}
   QJS_VERSION: '2025-04-26'
 
 jobs:
@@ -42,16 +42,33 @@ jobs:
     defaults:
       run:
         working-directory: pele-cli
+    outputs:
+      pele_ref: ${{ steps.pele.outputs.ref }}
     steps:
       - uses: actions/checkout@v4
         with:
           path: pele-cli
 
+      - name: Resolve the Pele version
+        id: pele
+        env:
+          INPUT_REF: ${{ inputs.pele_ref }}
+        run: |
+          if [ -n "$INPUT_REF" ]; then
+            ref="$INPUT_REF"
+          elif [ "$GITHUB_REF_TYPE" = tag ]; then
+            ref="${GITHUB_REF_NAME#v}"
+          else
+            ref=''
+          fi
+          echo "Pele ref: ${ref:-default branch}"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+
       - name: Check out Pele
         uses: actions/checkout@v4
         with:
           repository: obsidianmd/pele
-          ref: ${{ env.PELE_REF }}
+          ref: ${{ steps.pele.outputs.ref }}
           path: pele
 
       - uses: actions/setup-node@v4
@@ -117,6 +134,7 @@ jobs:
       - name: Create the release
         env:
           GH_TOKEN: ${{ github.token }}
+          PELE_REF: ${{ needs.build.outputs.pele_ref }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
             --repo "$GITHUB_REPOSITORY" \
