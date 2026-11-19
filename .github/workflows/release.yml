@@ -10,10 +10,10 @@ on:
     inputs:
       pele_ref:
         description: Pele tag or commit to build from
-        default: '1.12.0'
+        default: '1.13.0'
 
 env:
-  PELE_REF: ${{ inputs.pele_ref || '1.12.0' }}
+  PELE_REF: ${{ inputs.pele_ref || '1.13.0' }}
   QJS_VERSION: '2025-04-26'
 
 jobs:
